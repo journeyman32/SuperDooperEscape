@@ -3,6 +3,8 @@
 
 #include "OpenDoor.h"
 #include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
 
 // Sets default values for this component's properties
 UOpenDoor::UOpenDoor()
@@ -15,15 +17,29 @@ UOpenDoor::UOpenDoor()
 }
 
 
+void UOpenDoor::OpenDoor()
+{
+	AActor* Owner = GetOwner();
+	const FRotator NewRotation = FRotator(0.0f, 90.0f, 0.0f);
+	Owner->SetActorRotation(NewRotation);
+	
+}
+
 // Called when the game starts
 void UOpenDoor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AActor* Owner = GetOwner();
-	const FRotator NewRotation = FRotator(0.0f, -60.0f, 0.0f);
-	Owner->SetActorRotation(NewRotation);
+	ActorThatOpens =GetWorld()->GetFirstPlayerController()->GetPawn();
 	
+}
+
+void UOpenDoor::CloseDoor()
+{
+	AActor* Owner = GetOwner();
+	const FRotator NewRotation = FRotator(0.0f, -90.0f, 0.0f);
+	Owner->SetActorRotation(NewRotation);
+	IsDoorOpen = false;
 }
 
 
@@ -31,7 +47,24 @@ void UOpenDoor::BeginPlay()
 void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if(PressurePlate ->IsOverlappingActor(ActorThatOpens))
+	{
+		OpenDoor();
+		LastDoorOpenTime = GetWorld()->GetTimeSeconds();
+		UE_LOG(LogClass, Log, TEXT("Door Opened At: %f"), LastDoorOpenTime);
+		IsDoorOpen = true;
+		//UE_LOG(LogClass, Log, TEXT("Door is: %s"), IsDoorOpen);
+	}
 
-	// ...
+	if(IsDoorOpen)
+	{
+		float CloseTime = LastDoorOpenTime + DoorCloseDelay;
+		UE_LOG(LogClass, Log, TEXT("Door close time: %f"), CloseTime);
+		if(GetWorld()->GetTimeSeconds() >= CloseTime)
+		{
+			UE_LOG(LogClass, Log, TEXT("Going to close door"));
+			CloseDoor();
+		}
+	}
 }
 
